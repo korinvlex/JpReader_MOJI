@@ -1,4 +1,4 @@
-def build_qss(theme: str = "light", ui_font_size: int = 13) -> str:
+def build_qss(theme: str = "light", ui_font_size: int = 15) -> str:
     if theme == "dark":
         bg = "#1e1e20"
         surface = "#2a2a2d"
@@ -32,8 +32,9 @@ QMainWindow, QDialog, QWidget {{ background: {bg}; }}
 
 QTabWidget::pane {{ border: none; background: {bg}; }}
 QTabBar::tab {{
-    background: transparent; padding: 10px 20px; margin-right: 4px;
+    background: transparent; padding: 12px 24px; margin-right: 4px;
     color: {sub}; border: none; border-bottom: 2px solid transparent;
+    font-size: {ui_font_size + 1}px;
 }}
 QTabBar::tab:selected {{ color: {text}; border-bottom: 2px solid {accent}; }}
 QTabBar::tab:hover {{ color: {text}; }}
@@ -42,7 +43,7 @@ QListWidget {{
     background: {surface}; border: 1px solid {border}; border-radius: 8px;
     padding: 6px; outline: 0;
 }}
-QListWidget::item {{ padding: 8px 10px; border-radius: 6px; color: {text}; }}
+QListWidget::item {{ padding: 10px 12px; border-radius: 6px; color: {text}; }}
 QListWidget::item:selected {{ background: {accent_bg}; }}
 QListWidget::item:hover {{ background: {hover}; }}
 
@@ -54,21 +55,21 @@ QTextBrowser, QTextEdit, QLineEdit {{
 
 QPushButton {{
     background: {surface}; border: 1px solid {border}; border-radius: 6px;
-    padding: 7px 14px; color: {text};
+    padding: 8px 16px; color: {text};
 }}
 QPushButton:hover {{ background: {hover}; }}
 QPushButton:pressed {{ background: {accent_bg}; }}
 
-QLabel#h1 {{ font-size: {ui_font_size + 5}px; font-weight: 600; color: {text}; }}
-QLabel#h2 {{ font-size: {ui_font_size + 1}px; font-weight: 600; color: {text}; }}
+QLabel#h1 {{ font-size: {ui_font_size + 6}px; font-weight: 600; color: {text}; }}
+QLabel#h2 {{ font-size: {ui_font_size + 2}px; font-weight: 600; color: {text}; }}
 QLabel#muted {{ color: {sub}; }}
 
 QMenuBar {{ background: {bg}; border-bottom: 1px solid {border}; }}
-QMenuBar::item {{ padding: 6px 12px; background: transparent; }}
+QMenuBar::item {{ padding: 8px 14px; background: transparent; font-size: {ui_font_size}px; }}
 QMenuBar::item:selected {{ background: {accent_bg}; border-radius: 4px; }}
 
 QMenu {{ background: {surface}; border: 1px solid {border}; border-radius: 6px; padding: 4px; }}
-QMenu::item {{ padding: 7px 18px; border-radius: 4px; color: {text}; }}
+QMenu::item {{ padding: 8px 20px; border-radius: 4px; color: {text}; }}
 QMenu::item:selected {{ background: {accent_bg}; }}
 
 QScrollBar:vertical {{ background: transparent; width: 10px; margin: 0; }}
@@ -76,11 +77,11 @@ QScrollBar::handle:vertical {{ background: {border}; border-radius: 5px; min-hei
 QScrollBar::handle:vertical:hover {{ background: {sub}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
 
-QStatusBar {{ background: {status_bg}; color: {sub}; border-top: 1px solid {border}; }}
+QStatusBar {{ background: {status_bg}; color: {sub}; border-top: 1px solid {border}; font-size: {ui_font_size - 1}px; }}
 
 QComboBox {{
     background: {surface}; border: 1px solid {border}; border-radius: 6px;
-    padding: 6px 10px; color: {text};
+    padding: 7px 12px; color: {text};
 }}
 QComboBox QAbstractItemView {{
     background: {surface}; border: 1px solid {border}; color: {text};
@@ -105,7 +106,7 @@ QSlider::handle:horizontal {{
 """
 
 
-def build_reader_css(theme: str = "light", font_size: int = 18, line_height: float = 1.95) -> str:
+def build_reader_css(theme: str = "light", font_size: int = 20, line_height: float = 1.95) -> str:
     if theme == "dark":
         color = "#e4e4e4"
         bg = "transparent"

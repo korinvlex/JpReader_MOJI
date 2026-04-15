@@ -3,3 +3,5 @@
 /__pycache__/
 *.spec
 *.pyc
+my_prompts.md
+local.md

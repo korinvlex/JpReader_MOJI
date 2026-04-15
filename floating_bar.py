@@ -41,8 +41,8 @@ class FloatingBar(QFrame):
                 background: transparent;
                 color: {text_color};
                 border: none;
-                padding: 10px 20px;
-                font-size: 15px;
+                padding: 12px 22px;
+                font-size: 16px;
                 font-weight: 500;
             }}
             QPushButton:hover {{ color: {hover_color}; }}
@@ -50,7 +50,7 @@ class FloatingBar(QFrame):
                 color: {sep_color};
                 padding: 0;
                 margin: 0;
-                font-size: 16px;
+                font-size: 18px;
             }}
         """)
 
@@ -63,7 +63,7 @@ class FloatingBar(QFrame):
         outer.addWidget(self.card)
 
         lay = QHBoxLayout(self.card)
-        lay.setContentsMargins(6, 2, 6, 2)
+        lay.setContentsMargins(8, 2, 8, 2)
         lay.setSpacing(0)
 
         def sep():

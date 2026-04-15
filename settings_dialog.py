@@ -19,7 +19,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("设置")
-        self.resize(520, 460)
+        self.resize(540, 540)
         self.config = config.copy()
 
         layout = QVBoxLayout(self)
@@ -73,6 +73,21 @@ class SettingsDialog(QDialog):
         # --- 外观 ---
         look_box = QGroupBox("外观")
         look_form = QFormLayout(look_box)
+
+        # 界面字号滑块
+        self.ui_font_slider = QSlider(Qt.Horizontal)
+        self.ui_font_slider.setRange(12, 20)
+        self.ui_font_slider.setValue(int(self.config.get("ui_font_size", 15)))
+        self.ui_font_label = QLabel(f"{self.ui_font_slider.value()}px")
+        self.ui_font_slider.valueChanged.connect(
+            lambda v: self.ui_font_label.setText(f"{v}px")
+        )
+        ui_font_row = QHBoxLayout()
+        ui_font_row.addWidget(self.ui_font_slider, 1)
+        ui_font_row.addWidget(self.ui_font_label)
+        ui_font_wrap = QWidget()
+        ui_font_wrap.setLayout(ui_font_row)
+        look_form.addRow("界面字号：", ui_font_wrap)
 
         bg_row = QHBoxLayout()
         self.bg_path = QLineEdit(self.config.get("bg_image", ""))
@@ -144,5 +159,5 @@ class SettingsDialog(QDialog):
         self.config["jp_level"] = self.jp_level.currentText()
         self.config["bg_image"] = self.bg_path.text().strip()
         self.config["bg_opacity"] = self.bg_opacity.value() / 100.0
+        self.config["ui_font_size"] = self.ui_font_slider.value()
         return self.config
-

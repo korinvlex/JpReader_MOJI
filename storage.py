@@ -17,12 +17,14 @@ DEFAULT_CONFIG = {
     "total_completion_tokens": 0,
     "total_requests": 0,
     # v4 新增
-    "font_size": 18,            # 正文字号
+    "font_size": 20,            # 正文字号（原 18，调大）
     "line_height": 1.95,        # 行距
     "theme": "light",           # light / dark
     "jp_level": "N2",           # 日语水平
     "bg_image": "",             # 自定义背景图绝对路径
     "bg_opacity": 0.08,         # 背景透明度（0~1，越小越淡）
+    # v5 新增
+    "ui_font_size": 15,         # 界面字号（原 13，调大）
 }
 
 

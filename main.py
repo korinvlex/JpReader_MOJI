@@ -95,9 +95,9 @@ class ReaderWindow(QMainWindow):
         btn_bigger = QPushButton("A+")
         btn_theme = QPushButton("深色" if self.config.get("theme", "light") == "light" else "浅色")
         self.btn_theme = btn_theme
-        btn_smaller.setFixedWidth(40)
-        btn_bigger.setFixedWidth(40)
-        btn_theme.setFixedWidth(56)
+        btn_smaller.setFixedWidth(48)
+        btn_bigger.setFixedWidth(48)
+        btn_theme.setFixedWidth(64)
         btn_smaller.clicked.connect(lambda: self._change_font_size(-1))
         btn_bigger.clicked.connect(lambda: self._change_font_size(1))
         btn_theme.clicked.connect(self._toggle_theme)
@@ -126,7 +126,7 @@ class ReaderWindow(QMainWindow):
         self.chapter_list = QListWidget()
         self.chapter_list.currentRowChanged.connect(self.load_chapter)
         lv.addWidget(self.chapter_list, 1)
-        left.setMaximumWidth(260)
+        left.setMaximumWidth(280)
 
         # 中：正文
         self.text_view = QTextBrowser()
@@ -161,7 +161,7 @@ class ReaderWindow(QMainWindow):
         self.ai_floating_bar.hide()
         self.ai_floating_bar.note_clicked.connect(self.on_save_ai_selection_as_study)
 
-        right.setMaximumWidth(420)
+        right.setMaximumWidth(440)
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(left)
@@ -170,14 +170,14 @@ class ReaderWindow(QMainWindow):
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setStretchFactor(2, 0)
-        splitter.setSizes([240, 780, 380])
+        splitter.setSizes([260, 780, 400])
         splitter.setHandleWidth(6)
         root.addWidget(splitter)
         return w
 
     def _change_font_size(self, delta: int):
-        size = int(self.config.get("font_size", 18)) + delta
-        size = max(10, min(36, size))
+        size = int(self.config.get("font_size", 20)) + delta
+        size = max(12, min(36, size))
         self.config["font_size"] = size
         save_config(self.config)
         if self.book:
@@ -187,7 +187,8 @@ class ReaderWindow(QMainWindow):
         new_theme = "dark" if self.config.get("theme", "light") == "light" else "light"
         self.config["theme"] = new_theme
         save_config(self.config)
-        QApplication.instance().setStyleSheet(build_qss(new_theme))
+        ui_fs = int(self.config.get("ui_font_size", 15))
+        QApplication.instance().setStyleSheet(build_qss(new_theme, ui_fs))
         self.btn_theme.setText("深色" if new_theme == "light" else "浅色")
         if self.book:
             self.load_chapter(self.current_chapter)
@@ -392,7 +393,7 @@ class ReaderWindow(QMainWindow):
         ch = self.book.chapters[idx]
         css = build_reader_css(
             self.config.get("theme", "light"),
-            int(self.config.get("font_size", 18)),
+            int(self.config.get("font_size", 20)),
             float(self.config.get("line_height", 1.95)),
         )
         self.text_view.setHtml(css + ch.html)
@@ -523,6 +524,11 @@ class ReaderWindow(QMainWindow):
             self.ai.config = self.config
             self._update_status()
             self._apply_background()
+            # 重新应用全局 QSS（包含更新后的 ui_font_size）
+            ui_fs = int(self.config.get("ui_font_size", 15))
+            QApplication.instance().setStyleSheet(
+                build_qss(self.config.get("theme", "light"), ui_fs)
+            )
             if self.book:
                 self.load_chapter(self.current_chapter)
 
@@ -619,7 +625,8 @@ def main():
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
     w = ReaderWindow()
-    app.setStyleSheet(build_qss(w.config.get("theme", "light"), int(w.config.get("ui_font_size", 13))))
+    ui_fs = int(w.config.get("ui_font_size", 15))
+    app.setStyleSheet(build_qss(w.config.get("theme", "light"), ui_fs))
     w.show()
     sys.exit(app.exec_())
 

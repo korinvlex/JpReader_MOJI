@@ -7,7 +7,8 @@ class FloatingBar(QFrame):
     note_clicked = pyqtSignal()
     analyze_clicked = pyqtSignal()
 
-    def __init__(self, parent=None, mode: str = "reader", theme: str = "light"):
+    def __init__(self, parent=None, mode: str = "reader", theme: str = "light",
+                 ui_font_size: int = 15):
         """
         mode='reader' 显示：高亮 | 笔记 | 解析
         mode='ai'     显示：笔记（仅一项，因为是从 AI 解析面板划选的）
@@ -17,32 +18,33 @@ class FloatingBar(QFrame):
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.mode = mode
+        ui_font_size = max(12, min(24, int(ui_font_size)))
+        button_v_padding = max(6, round(ui_font_size * 0.55))
+        button_h_padding = max(12, round(ui_font_size * 1.1))
 
         if theme == "dark":
             card_bg = "#3a3a3e"
             text_color = "#e4e4e4"
             hover_color = "#ffd66b"
             sep_color = "#666"
-            shadow = "rgba(0,0,0,0.4)"
         else:
             card_bg = "#ffffff"
             text_color = "#333333"
             hover_color = "#0066cc"
             sep_color = "#ddd"
-            shadow = "rgba(0,0,0,0.12)"
 
         self.setStyleSheet(f"""
             QFrame#card {{
                 background: {card_bg};
-                border-radius: 20px;
+                border-radius: {ui_font_size + 4}px;
                 border: 1px solid {sep_color};
             }}
             QPushButton {{
                 background: transparent;
                 color: {text_color};
                 border: none;
-                padding: 12px 22px;
-                font-size: 16px;
+                padding: {button_v_padding}px {button_h_padding}px;
+                font-size: {ui_font_size}px;
                 font-weight: 500;
             }}
             QPushButton:hover {{ color: {hover_color}; }}
@@ -50,10 +52,9 @@ class FloatingBar(QFrame):
                 color: {sep_color};
                 padding: 0;
                 margin: 0;
-                font-size: 18px;
+                font-size: {ui_font_size + 2}px;
             }}
         """)
-
 
         outer = QHBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)

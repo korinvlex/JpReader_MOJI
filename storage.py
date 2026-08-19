@@ -3,10 +3,9 @@ import os
 import json
 from pathlib import Path
 
-APP_DIR = Path(os.getenv("APPDATA", ".")) / "JpReader"
-APP_DIR.mkdir(parents=True, exist_ok=True)
-DB_PATH = APP_DIR / "data.db"
-CONFIG_PATH = APP_DIR / "config.json"
+DEFAULT_APP_DIR = Path(os.getenv("APPDATA", ".")) / "JpReader"
+DEFAULT_APP_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_PATH = DEFAULT_APP_DIR / "config.json"
 
 
 DEFAULT_CONFIG = {
@@ -16,17 +15,30 @@ DEFAULT_CONFIG = {
     "total_prompt_tokens": 0,
     "total_completion_tokens": 0,
     "total_requests": 0,
-    # v4 新增
-    "font_size": 20,            # 正文字号（原 18，调大）
-    "line_height": 1.95,        # 行距
-    "theme": "light",           # light / dark
-    "jp_level": "N2",           # 日语水平
-    "bg_image": "",             # 自定义背景图绝对路径
-    "bg_opacity": 0.08,         # 背景透明度（0~1，越小越淡）
+    "font_size": 20,
+    "line_height": 1.95,
+    "theme": "light",
+    "jp_level": "N2",
+    "bg_image": "",
+    "bg_opacity": 0.08,
+    "ui_font_size": 15,
     # v5 新增
-    "ui_font_size": 15,         # 界面字号（原 13，调大）
+    "data_dir": "",             # 数据目录，空则使用默认 %APPDATA%/JpReader
+    "last_book_path": "",       # 上次打开的电子书路径
 }
 
+
+def get_data_dir(config: dict) -> Path:
+    """返回实际数据目录。若用户配置了自定义路径且有效，则使用之；否则用默认。"""
+    custom = config.get("data_dir", "").strip()
+    if custom:
+        p = Path(custom)
+        try:
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+        except Exception:
+            pass
+    return DEFAULT_APP_DIR
 
 
 def load_config() -> dict:
@@ -46,8 +58,12 @@ def save_config(cfg: dict):
 
 
 class Storage:
-    def __init__(self):
-        self.conn = sqlite3.connect(str(DB_PATH))
+    def __init__(self, db_path=None):
+        if db_path is None:
+            db_path = DEFAULT_APP_DIR / "data.db"
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.conn = sqlite3.connect(str(self.db_path))
         self.conn.row_factory = sqlite3.Row
         self._init_tables()
 
@@ -69,14 +85,13 @@ class Storage:
                 chapter INTEGER,
                 chapter_title TEXT,
                 text TEXT,
-                start_pos INTEGER DEFAULT -1,   -- 新增
-                end_pos   INTEGER DEFAULT -1,   -- 新增
+                start_pos INTEGER DEFAULT -1,
+                end_pos   INTEGER DEFAULT -1,
                 color TEXT DEFAULT '#fff59d',
                 ai_analysis TEXT DEFAULT '',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
 
-            -- 学习笔记：语法、词汇等，跨书
             CREATE TABLE IF NOT EXISTS study_notes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
@@ -86,7 +101,6 @@ class Storage:
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
 
-            -- 阅读笔记：绑定到具体书
             CREATE TABLE IF NOT EXISTS reading_notes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 book_id TEXT,
@@ -103,7 +117,6 @@ class Storage:
             c.execute("ALTER TABLE highlights ADD COLUMN start_pos INTEGER DEFAULT -1")
         if "end_pos" not in cols:
             c.execute("ALTER TABLE highlights ADD COLUMN end_pos INTEGER DEFAULT -1")
-        self.conn.commit()
         self.conn.commit()
 
     # --- 进度 ---
@@ -141,7 +154,6 @@ class Storage:
             SELECT * FROM highlights WHERE book_id=? AND chapter=? ORDER BY id
         """, (book_id, chapter)).fetchall()
         return [dict(r) for r in rows]
-
 
     def update_highlight_analysis(self, hid, analysis):
         self.conn.execute("UPDATE highlights SET ai_analysis=? WHERE id=?", (analysis, hid))

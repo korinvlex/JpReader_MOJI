@@ -230,11 +230,14 @@ class OPDSItem:
         return out
 
     def open_link(self) -> Optional[OPDSLink]:
-        """进入子目录所用的链接。"""
-        for l in self.links:
-            if l.href:
+        """进入子目录所用的链接：优先目录型链接，其次任意可用链接。"""
+        candidates = [l for l in self.links if l.href]
+        if not candidates:
+            return None
+        for l in candidates:
+            if not l.rel.startswith(ACQUISITION):
                 return l
-        return None
+        return candidates[0]
 
     def web_page_link(self) -> Optional[OPDSLink]:
         """适合在浏览器打开的网页链接（优先 alternate/related，排除下载链接）。"""
@@ -293,15 +296,24 @@ def _parse_item(el, base_url: str) -> Optional[OPDSItem]:
                         author=author, updated=updated, links=links)
 
     # 否则尝试识别为子目录（OPDS 1.x subsection / OPDS 2.x navigation）
+    # 按 OPDS 规范，link 缺省 rel 等价于 "alternate"，因此不能只依赖 rel。
     for l in links:
         if not l.href:
             continue
-        if l.rel == "subsection":
+        rel = l.rel or "alternate"
+        ltype = l.type or ""
+        # 1) 显式 subsection
+        if rel == "subsection":
             return OPDSItem(kind="feed", title=title, summary=summary,
                             author=author, updated=updated, links=links)
-        if ("kind=navigation" in (l.type or "")
-                or (l.rel in ("self", "alternate")
-                    and "profile=opds-catalog" in (l.type or ""))):
+        # 2) OPDS 目录链接：type 含 opds-catalog（Calibre-Web 等即此形态），
+        #    且 rel 为 navigation / alternate / self，或 rel 缺省
+        if "opds-catalog" in ltype or "kind=navigation" in ltype:
+            if rel in ("subsection", "alternate", "self", "navigation", "start"):
+                return OPDSItem(kind="feed", title=title, summary=summary,
+                                author=author, updated=updated, links=links)
+        # 3) 兜底：rel 为 navigation
+        if rel == "navigation":
             return OPDSItem(kind="feed", title=title, summary=summary,
                             author=author, updated=updated, links=links)
     return None

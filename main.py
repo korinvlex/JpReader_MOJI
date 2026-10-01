@@ -16,6 +16,7 @@ from ai_client import AIClient
 from settings_dialog import SettingsDialog
 from notes_panel import NotesPanel
 from floating_bar import FloatingBar
+from opds_panel import OPDSBrowser
 from ui_style import build_qss, build_reader_css
 
 
@@ -89,6 +90,9 @@ class ReaderWindow(QMainWindow):
         self.setCentralWidget(self.tabs)
 
         self.tabs.addTab(self._build_reader_tab(), "阅读")
+        self.opds_panel = OPDSBrowser(self.config)
+        self.opds_panel.open_book_requested.connect(self._do_open_book)
+        self.tabs.addTab(self.opds_panel, "在线书库")
         self.study_panel = NotesPanel(self.storage, kind="study")
         self.tabs.addTab(self.study_panel, "学习笔记")
         self.reading_panel = NotesPanel(
@@ -326,6 +330,7 @@ class ReaderWindow(QMainWindow):
         mb = self.menuBar()
         fm = mb.addMenu("文件")
         fm.addAction("打开电子书…", self.open_book)
+        fm.addAction("打开在线书库 (OPDS)…", self.open_opds)
         fm.addSeparator()
         fm.addAction("设置…", self.open_settings)
         fm.addSeparator()
@@ -450,6 +455,10 @@ class ReaderWindow(QMainWindow):
             self._do_open_book(path)
         except Exception as e:
             QMessageBox.critical(self, "错误", f"无法打开：{e}")
+
+    def open_opds(self):
+        """切到「在线书库」Tab。"""
+        self.tabs.setCurrentWidget(self.opds_panel)
 
     def load_chapter(self, idx):
         if not self.book or idx < 0 or idx >= len(self.book.chapters):

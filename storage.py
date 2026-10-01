@@ -25,6 +25,9 @@ DEFAULT_CONFIG = {
     # v5 新增
     "data_dir": "",             # 数据目录，空则使用默认 %APPDATA%/JpReader
     "last_book_path": "",       # 上次打开的电子书路径
+    # OPDS 在线书库
+    "opds_servers": [],         # 已收藏的 OPDS 书库地址列表
+    "opds_download_dir": "",    # OPDS 下载目录，空则用 <数据目录>/opds_downloads
 }
 
 
@@ -41,16 +44,100 @@ def get_data_dir(config: dict) -> Path:
     return DEFAULT_APP_DIR
 
 
+def get_opds_download_dir(config: dict) -> Path:
+    """OPDS 下载目录：用户自定义优先，否则 <数据目录>/opds_downloads。"""
+    custom = config.get("opds_download_dir", "").strip()
+    if custom:
+        p = Path(custom)
+        try:
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+        except Exception:
+            pass
+    d = get_data_dir(config) / "opds_downloads"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def load_config() -> dict:
     if CONFIG_PATH.exists():
         try:
             data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
             merged = DEFAULT_CONFIG.copy()
             merged.update(data)
+            # 把旧版纯字符串书库列表迁移为 {url, auth} 结构
+            normalize_opds_servers(merged)
             return merged
         except Exception:
             pass
     return DEFAULT_CONFIG.copy()
+
+
+# ---------- OPDS 凭据的本地混淆 ----------
+# 说明：这不是加密，无法抵御能读取本机文件的攻击者；
+# 目的是避免密码以肉眼可读的明文直接出现在 config.json 中。
+_OBFUSCATE_KEY = b"JpReader-OPDS-2026"
+
+
+def _xor(data: bytes) -> bytes:
+    key = _OBFUSCATE_KEY
+    return bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
+
+
+def obfuscate(text: str) -> str:
+    """把明文混淆为可安全写入 json 的字符串。空串原样返回。"""
+    if not text:
+        return ""
+    import base64
+    return "enc:" + base64.b64encode(_xor(text.encode("utf-8"))).decode("ascii")
+
+
+def deobfuscate(text: str) -> str:
+    """还原 obfuscate 的结果。兼容历史明文（无 enc: 前缀则原样返回）。"""
+    if not text:
+        return ""
+    if not text.startswith("enc:"):
+        return text
+    import base64
+    try:
+        raw = base64.b64decode(text[4:].encode("ascii"))
+        return _xor(raw).decode("utf-8")
+    except Exception:
+        return ""
+
+
+def normalize_opds_servers(config: dict) -> dict:
+    """把历史格式（纯字符串地址列表）统一为 {url, auth} 结构。"""
+    servers = config.get("opds_servers", []) or []
+    out = []
+    changed = False
+    for s in servers:
+        if isinstance(s, str):
+            out.append({"url": s, "auth": {"kind": "none"}})
+            changed = True
+        elif isinstance(s, dict) and s.get("url"):
+            entry = {"url": s["url"], "auth": s.get("auth") or {"kind": "none"}}
+            if entry["auth"].get("password"):
+                entry["auth"]["password"] = obfuscate(
+                    deobfuscate(entry["auth"]["password"])
+                )
+            if entry["auth"].get("token"):
+                entry["auth"]["token"] = obfuscate(
+                    deobfuscate(entry["auth"]["token"])
+                )
+            if entry["auth"].get("header_value"):
+                entry["auth"]["header_value"] = obfuscate(
+                    deobfuscate(entry["auth"]["header_value"])
+                )
+            if entry != s:
+                changed = True
+            out.append(entry)
+        # 其余脏数据丢弃
+        else:
+            changed = True
+    if changed:
+        config["opds_servers"] = out
+    return config
 
 
 def save_config(cfg: dict):

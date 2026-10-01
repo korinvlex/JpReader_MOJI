@@ -172,6 +172,44 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(data_box)
 
+        # --- OPDS 在线书库 ---
+        opds_box = QGroupBox("OPDS 在线书库")
+        opds_form = QFormLayout(opds_box)
+
+        dl_row = QHBoxLayout()
+        self.opds_dir_edit = QLineEdit(self.config.get("opds_download_dir", ""))
+        self.opds_dir_edit.setPlaceholderText("留空则下载到 数据目录/opds_downloads")
+        dl_pick = QPushButton("选择…")
+        dl_clear = QPushButton("恢复默认")
+        dl_row.addWidget(self.opds_dir_edit, 1)
+        dl_row.addWidget(dl_pick)
+        dl_row.addWidget(dl_clear)
+        dl_wrap = QWidget()
+        dl_wrap.setLayout(dl_row)
+        opds_form.addRow("下载目录：", dl_wrap)
+
+        def _pick_dl_dir():
+            d = QFileDialog.getExistingDirectory(self, "选择 OPDS 下载目录")
+            if d:
+                self.opds_dir_edit.setText(d)
+
+        dl_pick.clicked.connect(_pick_dl_dir)
+        dl_clear.clicked.connect(lambda: self.opds_dir_edit.clear())
+
+        # 已保存书库与登录状态一览
+        self.lbl_servers = QLabel(self._servers_summary())
+        self.lbl_servers.setWordWrap(True)
+        self.lbl_servers.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        opds_form.addRow("已收藏书库：", self.lbl_servers)
+
+        opds_hint = QLabel("书库地址可在「在线书库」页签中输入并 ☆ 收藏；"
+                           "需要登录的书库请点该页签的「🔑 登录」按钮配置凭据。")
+        opds_hint.setObjectName("muted")
+        opds_hint.setWordWrap(True)
+        opds_form.addRow(opds_hint)
+
+        layout.addWidget(opds_box)
+
         # --- 用量统计 ---
         usage_box = QGroupBox("用量统计")
         ul = QFormLayout(usage_box)
@@ -204,6 +242,29 @@ class SettingsDialog(QDialog):
         btns.addWidget(ok)
         btns.addWidget(cancel)
         layout.addLayout(btns)
+
+    def _servers_summary(self) -> str:
+        """把已收藏书库与认证方式列成简短多行文本。"""
+        servers = self.config.get("opds_servers", []) or []
+        if not servers:
+            return "（暂无）"
+        lines = []
+        for s in servers:
+            if isinstance(s, str):
+                lines.append(f"· {s} — 公开")
+                continue
+            url = s.get("url", "")
+            kind = (s.get("auth") or {}).get("kind", "none")
+            user = (s.get("auth") or {}).get("username", "")
+            label = {
+                "none": "公开",
+                "basic": f"Basic · {user}",
+                "digest": f"Digest · {user}",
+                "bearer": "Bearer 令牌",
+                "header": "自定义请求头",
+            }.get(kind, kind)
+            lines.append(f"· {url} — {label}")
+        return "\n".join(lines)
 
     def _on_preset(self, name):
         url, model = PRESET_ENDPOINTS.get(name, ("", ""))
@@ -242,4 +303,5 @@ class SettingsDialog(QDialog):
         self.config["ui_font_size"] = self.ui_font_slider.value()
         self.config["font_size"] = self.reader_font_slider.value()
         self.config["data_dir"] = self.data_dir_edit.text().strip()
+        self.config["opds_download_dir"] = self.opds_dir_edit.text().strip()
         return self.config
